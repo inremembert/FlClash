@@ -66,7 +66,7 @@ abstract class AppSettingProps with _$AppSettingProps {
     @Default(defaultDashboardWidgets)
     @JsonKey(fromJson: dashboardWidgetsSafeFormJson)
     List<DashboardWidget> dashboardWidgets,
-    @Default(false) bool onlyStatisticsProxy,
+    @Default(true) bool onlyStatisticsProxy,
     @Default(false) bool autoLaunch,
     @Default(false) bool silentLaunch,
     @Default(false) bool autoRun,
@@ -74,7 +74,7 @@ abstract class AppSettingProps with _$AppSettingProps {
     @Default(true) bool closeConnections,
     @Default(defaultTestUrl) String testUrl,
     @Default(true) bool isAnimateToPage,
-    @Default(true) bool autoCheckUpdate,
+    @Default(false) bool autoCheckUpdate,
     @Default(false) bool showLabel,
     @Default(false) bool disclaimerAccepted,
     @Default(false) bool crashlyticsTip,

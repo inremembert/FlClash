@@ -1,0 +1,88 @@
+name: Build Windows Custom UA
+
+on:
+  workflow_dispatch:
+    inputs:
+      suffix:
+        description: "User-Agent suffix, e.g. pc1"
+        required: true
+        default: "pc1"
+      arch:
+        description: "Windows arch"
+        required: true
+        default: "amd64"
+        type: choice
+        options:
+          - amd64
+          - arm64
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Use HTTPS submodules
+        shell: pwsh
+        run: |
+          git config --file .gitmodules submodule.core/Clash.Meta.url https://github.com/chen08209/Clash.Meta.git
+          git config --file .gitmodules submodule.plugins/flutter_distributor.url https://github.com/chen08209/flutter_distributor.git
+          git config --file .gitmodules submodule.plugins/tray_manager.url https://github.com/chen08209/tray_manager.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.0"
+          cache-dependency-path: |
+            core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.35.7
+          cache: true
+
+      - name: Install Windows build tools
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          choco install mingw --no-progress -y
+
+      - name: Patch User-Agent suffix
+        shell: pwsh
+        run: |
+          $file = "lib/common/package.dart"
+          $suffix = "${{ github.event.inputs.suffix }}"
+          $suffix = $suffix.Replace("\", "\\").Replace("'", "\'")
+          $text = Get-Content $file -Raw
+          $needle = "    'Platform/" + '$' + "{Platform.operatingSystem}',"
+          if (-not $text.Contains($needle)) {
+            Write-Error "Could not find User-Agent Platform entry in $file"
+            exit 1
+          }
+          $replacement = $needle + "`n    '" + $suffix + "',"
+          $text = $text.Replace($needle, $replacement)
+          Set-Content $file $text -NoNewline
+
+      - name: Get Flutter Dependency
+        run: |
+          flutter --version
+          flutter pub get
+
+      - name: Build Windows package
+        shell: pwsh
+        run: dart setup.dart windows --arch ${{ github.event.inputs.arch }} --env stable
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlClash-windows-${{ github.event.inputs.arch }}-${{ github.event.inputs.suffix }}
+          path: ./dist
+          overwrite: true

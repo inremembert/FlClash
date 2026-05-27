@@ -82,7 +82,6 @@ class GlobalState {
       systemUiOverlayStyle: const SystemUiOverlayStyle(),
     );
     final appStateOverrides = buildAppStateOverrides(appState);
-    await initWindowsUaInstallId();
     packageInfo = await PackageInfo.fromPlatform();
     final configMap = await preferences.getConfigMap();
     final config = await migration.migrationIfNeeded(

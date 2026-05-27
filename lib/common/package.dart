@@ -21,7 +21,11 @@ String? get windowsDeviceUaSuffix {
 
     if (machineGuid == null || machineGuid.isEmpty) return null;
 
-    final digest = sha256.convert(utf8.encode(machineGuid.toLowerCase()));
+    final deviceSeed = [
+      machineGuid.toLowerCase(),
+      Platform.localHostname.toLowerCase(),
+    ].join('|');
+    final digest = sha256.convert(utf8.encode(deviceSeed));
     _windowsDeviceUaSuffix = 'pc-${digest.toString().substring(0, 16)}';
     return _windowsDeviceUaSuffix;
   } catch (_) {

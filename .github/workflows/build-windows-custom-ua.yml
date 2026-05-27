@@ -90,6 +90,7 @@ jobs:
         shell: pwsh
         run: |
           dart setup.dart windows --arch ${{ github.event.inputs.arch }} --env stable
+          flutter build windows --release --verbose --dart-define-from-file=env.json
 
       - name: Collect artifacts
         shell: pwsh
@@ -105,12 +106,17 @@ jobs:
             Copy-Item "dist/*" $artifactDir -Recurse -Force
           }
 
-          Get-ChildItem "build/windows" -Recurse -Directory -Filter Release -ErrorAction SilentlyContinue |
-            ForEach-Object {
-              $target = Join-Path $artifactDir $_.Parent.Name
-              New-Item -ItemType Directory -Force -Path $target | Out-Null
-              Copy-Item "$($_.FullName)/*" $target -Recurse -Force
-            }
+          $portableDir = Join-Path $artifactDir "portable"
+          $releaseDirs = Get-ChildItem "build/windows" -Recurse -Directory -Filter Release -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName "FlClash.exe") }
+
+          if ($releaseDirs.Count -eq 0) {
+            Write-Error "Could not find FlClash.exe under build/windows."
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
+          Copy-Item "$($releaseDirs[0].FullName)/*" $portableDir -Recurse -Force
 
           Write-Host "Collected artifact files:"
           Get-ChildItem $artifactDir -Recurse -File | Select-Object -ExpandProperty FullName

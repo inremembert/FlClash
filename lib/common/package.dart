@@ -43,7 +43,7 @@ String? get windowsDeviceUaSuffix {
 
 extension PackageInfoExtension on PackageInfo {
   String get ua => [
-        '$appName/v$version',
+        'FlClash/v$version',
         'clash-verge',
         'Platform/${Platform.operatingSystem}',
         if (windowsDeviceUaSuffix case final deviceUaSuffix?)

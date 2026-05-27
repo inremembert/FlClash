@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       suffix:
-        description: "User-Agent suffix, e.g. pc1"
-        required: true
-        default: "pc1"
+        description: "Extra User-Agent suffix, optional"
+        required: false
+        default: ""
       arch:
         description: "Windows arch"
         required: true
@@ -63,6 +63,10 @@ jobs:
         run: |
           $file = "lib/common/package.dart"
           $suffix = "${{ github.event.inputs.suffix }}"
+          if ([string]::IsNullOrWhiteSpace($suffix)) {
+            Write-Host "No extra User-Agent suffix provided."
+            exit 0
+          }
           $suffix = $suffix.Replace("\", "\\").Replace("'", "\'")
           $text = Get-Content $file -Raw
           $needle = "    'Platform/" + '$' + "{Platform.operatingSystem}',"

@@ -91,10 +91,34 @@ jobs:
         run: |
           dart setup.dart windows --arch ${{ github.event.inputs.arch }} --env stable
 
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          $artifactDir = "artifact-out"
+          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
+
+          Write-Host "Generated package candidates:"
+          Get-ChildItem -Recurse -File -Include *.exe,*.zip,*.msix,*.appx,*.msi |
+            Select-Object -ExpandProperty FullName
+
+          if (Test-Path "dist") {
+            Copy-Item "dist/*" $artifactDir -Recurse -Force
+          }
+
+          Get-ChildItem "build/windows" -Recurse -Directory -Filter Release -ErrorAction SilentlyContinue |
+            ForEach-Object {
+              $target = Join-Path $artifactDir $_.Parent.Name
+              New-Item -ItemType Directory -Force -Path $target | Out-Null
+              Copy-Item "$($_.FullName)/*" $target -Recurse -Force
+            }
+
+          Write-Host "Collected artifact files:"
+          Get-ChildItem $artifactDir -Recurse -File | Select-Object -ExpandProperty FullName
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlClash-windows-${{ github.event.inputs.arch }}-${{ github.event.inputs.suffix }}
-          path: ./dist/**
+          path: ./artifact-out/**
           if-no-files-found: error
           overwrite: true

@@ -90,41 +90,31 @@ jobs:
         shell: pwsh
         run: |
           dart setup.dart windows --arch ${{ github.event.inputs.arch }} --env stable
-          flutter build windows --release --verbose --dart-define-from-file=env.json
 
-      - name: Collect artifacts
+      - name: Verify installer artifact
         shell: pwsh
         run: |
-          $artifactDir = "artifact-out"
-          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
-
-          Write-Host "Generated package candidates:"
-          Get-ChildItem -Recurse -File -Include *.exe,*.zip,*.msix,*.appx,*.msi |
-            Select-Object -ExpandProperty FullName
-
-          if (Test-Path "dist") {
-            Copy-Item "dist/*" $artifactDir -Recurse -Force
-          }
-
-          $portableDir = Join-Path $artifactDir "portable"
-          $releaseDirs = Get-ChildItem "build/windows" -Recurse -Directory -Filter Release -ErrorAction SilentlyContinue |
-            Where-Object { Test-Path (Join-Path $_.FullName "FlClash.exe") }
-
-          if ($releaseDirs.Count -eq 0) {
-            Write-Error "Could not find FlClash.exe under build/windows."
+          if (-not (Test-Path "dist")) {
+            Write-Error "dist directory was not created."
             exit 1
           }
 
-          New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
-          Copy-Item "$($releaseDirs[0].FullName)/*" $portableDir -Recurse -Force
+          Write-Host "dist files:"
+          Get-ChildItem "dist" -Recurse -File | Select-Object -ExpandProperty FullName
 
-          Write-Host "Collected artifact files:"
-          Get-ChildItem $artifactDir -Recurse -File | Select-Object -ExpandProperty FullName
+          $installers = Get-ChildItem "dist" -Recurse -File -Filter "*setup.exe"
+          if ($installers.Count -eq 0) {
+            Write-Error "Could not find installer matching *setup.exe in dist."
+            exit 1
+          }
+
+          Write-Host "Installer artifacts:"
+          $installers | Select-Object -ExpandProperty FullName
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlClash-windows-${{ github.event.inputs.arch }}-${{ github.event.inputs.suffix }}
-          path: ./artifact-out/**
+          path: ./dist/**
           if-no-files-found: error
           overwrite: true

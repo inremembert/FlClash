@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:fl_clash/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,6 +33,19 @@ class Preferences {
   Future<void> setVersion(int version) async {
     final preferences = await sharedPreferencesCompleter.future;
     await preferences?.setInt('version', version);
+  }
+
+  Future<String?> getOrCreateUaInstallId() async {
+    final preferences = await sharedPreferencesCompleter.future;
+    const key = 'uaInstallId';
+    final installId = preferences?.getString(key);
+    if (installId != null && installId.isNotEmpty) {
+      return installId;
+    }
+
+    final newInstallId = _uuidV4();
+    await preferences?.setString(key, newInstallId);
+    return newInstallId;
   }
 
   Future<void> saveShareState(SharedState shareState) async {
@@ -92,3 +106,31 @@ class Preferences {
 }
 
 final preferences = Preferences();
+
+String _uuidV4() {
+  final random = _secureRandom();
+  final bytes = List.generate(16, (_) => random.nextInt(256));
+
+  bytes[6] = (bytes[6] & 0x0F) | 0x40;
+  bytes[8] = (bytes[8] & 0x3F) | 0x80;
+
+  final hex = bytes
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+
+  return [
+    hex.substring(0, 8),
+    hex.substring(8, 12),
+    hex.substring(12, 16),
+    hex.substring(16, 20),
+    hex.substring(20, 32),
+  ].join('-');
+}
+
+Random _secureRandom() {
+  try {
+    return Random.secure();
+  } catch (_) {
+    return Random();
+  }
+}

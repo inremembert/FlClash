@@ -5,7 +5,15 @@ import 'package:crypto/crypto.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:win32_registry/win32_registry.dart';
 
+import 'preferences.dart';
+
 String? _windowsDeviceUaSuffix;
+String? _windowsUaInstallId;
+
+Future<void> initWindowsUaInstallId() async {
+  if (!Platform.isWindows) return;
+  _windowsUaInstallId ??= await preferences.getOrCreateUaInstallId();
+}
 
 String? get windowsDeviceUaSuffix {
   if (!Platform.isWindows) return null;
@@ -40,5 +48,7 @@ extension PackageInfoExtension on PackageInfo {
         'Platform/${Platform.operatingSystem}',
         if (windowsDeviceUaSuffix case final deviceUaSuffix?)
           deviceUaSuffix,
+        if (Platform.isWindows && _windowsUaInstallId case final installId?)
+          installId,
       ].join(' ');
 }
